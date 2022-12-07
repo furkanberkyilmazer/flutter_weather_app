@@ -3,20 +3,20 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter/material.dart';
 import 'search_page.dart';
 import 'package:http/http.dart' as http;
-
+//https://api.openweathermap.org/data/2.5/weather?lat=37.4219983&lon=-122.084&appid=0c55423352c00c7d95d612d2ad0af5e1
 class HomePage extends StatefulWidget {
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  String location = 'İstanbul';
+  String location = 'Ankara';
   double? temperatur;
   final String key = '0c55423352c00c7d95d612d2ad0af5e1';
   var locationData;
   String code="c";
   Position? devicePosition;
-  Future<void> getLocationData() async {
+  Future<void> getLocationDataFromAPI() async {
     locationData = await http.get(Uri.parse(
         'https://api.openweathermap.org/data/2.5/weather?q=$location&appid=$key'));
     final locationDataParsed=jsonDecode(locationData.body);
@@ -30,15 +30,42 @@ class _HomePageState extends State<HomePage> {
     });
 
   }
+  Future<void> getLocationDataFromAPIByLatLon() async {
+    if (devicePosition!=null) {
+      locationData = await http.get(Uri.parse(
+              'https://api.openweathermap.org/data/2.5/weather?lat=${devicePosition!.latitude}&lon=${devicePosition!.longitude}&appid=$key'));
+      final locationDataParsed=jsonDecode(locationData.body);
+      print(locationDataParsed);
+
+      setState(() {
+        temperatur=locationDataParsed['main']['temp'];
+        location=locationDataParsed['name'];
+        code=locationDataParsed['weather'][0]['main'];
+        print(code);
+      });
+    }
+
+  }
 
   Future<void> getDevicePosition() async{
-     devicePosition=await _determinePosition();
-     print('Device Prosition: $devicePosition');
+    try {
+      devicePosition = await _determinePosition();
+      print('Device Prosition: $devicePosition');
+    }catch(error){
+      print(error);
+    }
+    finally{
+
+      //her ne olursa olsun bu kod çalışır.
+    }
+  }
+  void getInitialData() async{
+    await getDevicePosition();
+    await getLocationDataFromAPIByLatLon();
   }
   @override
   void initState() {
-    getDevicePosition();
-   getLocationData();
+    getInitialData();//init state de asyn olmadığı için yukarda bir üst fonk yazdık.
   super.initState();
 
 
@@ -51,7 +78,7 @@ class _HomePageState extends State<HomePage> {
         image: DecorationImage(
             image: AssetImage('assets/$code.jpg'), fit: BoxFit.cover),
       ),
-      child: (temperatur==null)
+      child: (temperatur==null || devicePosition==null)
         ? Scaffold(
         backgroundColor: Colors.transparent,
           body: Center(child: Column(
@@ -69,7 +96,7 @@ class _HomePageState extends State<HomePage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  "$temperatur°",
+                  "$temperatur°C",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 70,
@@ -90,7 +117,7 @@ class _HomePageState extends State<HomePage> {
                                   builder: (context) => SearchPage()));
                          location=selectedCity;
                          print(location);
-                         getLocationData();
+                         getLocationDataFromAPI();
                         },
                         icon: const Icon(Icons.search))
                   ],
