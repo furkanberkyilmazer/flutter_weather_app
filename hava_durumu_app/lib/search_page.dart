@@ -53,6 +53,7 @@ class _SearchPageState extends State<SearchPage> {
 
                 }
               },
+                  style: ElevatedButton.styleFrom(primary: Colors.blueGrey),
                   child: Text("Select City"))
             ],
           ),
